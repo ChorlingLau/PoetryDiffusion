@@ -1,0 +1,30 @@
+cd ..
+python transformers/examples/pytorch/language-modeling/run_clm.py  \
+--output_dir="[classifier save dir]"   \
+--model_name_or_path=bert-base-uncased   \
+--tokenizer_name=bert-base-uncased  \
+--per_device_train_batch_size 40    \
+--per_device_eval_batch_size 40    \
+--save_steps 10000      \
+--num_train_epochs 6     \
+--do_train \
+--eval_steps 2000 \
+--evaluation_strategy steps  \
+--do_eval \
+--dataloader_num_workers 1   \
+--save_total_limit 1   \
+--overwrite_output_dir   \
+--logging_dir "[your logging dir]"   \
+--block_size 100   \
+--disable_tqdm True \
+--model_type gpt2  \
+--gradient_accumulation_steps 1 \
+--seed 101 \
+--experiment sonnet-line \
+--dataset_name=wikitext \
+--dataset_config_name wikitext-103-raw-v1 \
+--task wp \
+--init_emb "[your diffusion model dir]" \
+--n_embd 16    \
+--learned_emb yes \
+--diffusion_steps 200
