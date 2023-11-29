@@ -11,6 +11,6 @@ python scripts/run_train.py \
 --modality e2e-tgt \
 --submit no \
 --padding_mode block \
---app "--predict_xstart True --training_mode e2e --vocab_size 5049 --e2e_train ../datasets/e2e_data --notes ci " \
+--app "--predict_xstart True --training_mode e2e --vocab_size 5049 --e2e_train ../datasets/ci8w --notes ci " \
 --notes ci
 #--checkpoint "000000"

@@ -91,13 +91,13 @@ def get_corpus_rocstory(data_args, model, image_size, padding_mode='block',
             tokenizer = nlp.tokenizer
             if split == 'train':
                 print('loading form the TRAIN set')
-                path = f'{data_args.e2e_train}/../sonnet3355/sonnet_train.txt'
+                path = f'{data_args.e2e_train}/sonnet_train.txt'
             elif split == 'valid':
                 print('loading form the VALID set')
-                path = f'{data_args.e2e_train}/../sonnet3355/sonnet_valid.txt'
+                path = f'{data_args.e2e_train}/sonnet_valid.txt'
             elif split == 'test':
                 print('loading form the TEST set')
-                path = f'{data_args.e2e_train}/../sonnet3355/sonnet_test.txt'
+                path = f'{data_args.e2e_train}/sonnet_test.txt'
             elif split == 'debug':
                 print('loading form the DEBUG set')
                 path = data_args.debug_path
