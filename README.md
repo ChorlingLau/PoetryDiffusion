@@ -32,7 +32,7 @@ bash ci_diffusion.sh	# or: bash sonnet_diffusion.sh
 
 
 
-## Decode Diffusion Model
+## Generate Poetry without Control
 
 After training the Diffusion model, we can generate poems without control following the instructions below.
 
@@ -43,16 +43,16 @@ bash decode.sh
 
 
 
-## Controllable Text Generation 
+## Generate Rhythmically Controlled Poetry
 
-First, train the classsifier used to guide the generation (e.g. tone in SongCi) 
+First, train the Metrical Controller used to guide the generation (e.g. tone in SongCi) 
 
 ```
 cd bash
 bash ci_classifier.sh
 ```
 
-Then, we can use the trained classifier to guide generation. 
+Then, we can use the trained Metrical Controller to guide generation. 
 
 ```
 cd bash
