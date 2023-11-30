@@ -1,9 +1,71 @@
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 from transformers import PreTrainedTokenizerFast
 import os
 import torch
 from collections import Counter, defaultdict
+
+
+def load_data_text(
+    *, data_dir, batch_size, image_size, class_cond=False, deterministic=False, data_args=None,
+        task_mode='e2e-tgt', model=None, padding_mode='block', split='train', load_vocab=None,
+):
+    """
+    For a dataset, create a generator over (images, kwargs) pairs.
+
+    Each images is an NCHW float tensor, and the kwargs dict contains zero or
+    more keys, each of which map to a batched Tensor of their own.
+    The kwargs dict can be used for class labels, in which case the key is "y"
+    and the values are integer tensors of class labels.
+
+    :param data_dir: a dataset directory.
+    :param batch_size: the batch size of each returned pair.
+    :param image_size: the size to which images are resized.
+    :param class_cond: if True, include a "y" key in returned dicts for class
+                       label. If classes are not available and this is true, an
+                       exception will be raised.
+    :param deterministic: if True, yield results in a deterministic order.
+    """
+    print('hello loading text data. ')
+
+    if data_args.experiment.startswith('random') and model is None:
+        model = None
+    elif data_args.experiment.startswith('random') and model is not None:
+        print('loading initialized random embeddings. ')
+
+    if task_mode == 'e2e-tgt':
+        print('hello loading e2e-tgt. ')
+        training_data, model = get_corpus_rocstory(data_args, model, image_size,
+                                            padding_mode=padding_mode, split=split,
+                                            load_vocab=load_vocab)
+
+    dataset = TextDataset(
+        training_data,
+        image_size,
+        data_args,
+        model_arch=data_args.model_arch,
+    )
+
+    if deterministic:
+
+        data_loader = DataLoader(
+            dataset,
+            batch_size=batch_size,  # 20,
+            drop_last=True,
+            shuffle=False,
+            num_workers=1,
+        )
+
+    else:
+        data_loader = DataLoader(
+            dataset,
+            batch_size=batch_size,  # 20,
+            drop_last=True,
+            shuffle=True,
+            num_workers=1,
+        )
+    while True:
+        yield from data_loader
 
 
 def helper_tokenize_encode(sentence_lst, vocab_dict, model, seqlen, data_args, padding_mode, ):

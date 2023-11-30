@@ -4,9 +4,7 @@ Train a diffusion model on images.
 
 import argparse
 import json, torch, os
-import numpy as np
 from improved_diffusion import dist_util, logger
-from improved_diffusion.image_datasets import load_data
 from improved_diffusion.text_datasets import load_data_text
 from improved_diffusion.resample import create_named_schedule_sampler
 from improved_diffusion.script_util import (
@@ -21,7 +19,6 @@ from transformers import set_seed
 from functools import partial
 from improved_diffusion.test_util import get_weights, compute_logp
 from improved_diffusion.rounding import load_models, load_tokenizer
-import torch.distributed as dist
 import wandb
 
 
@@ -59,72 +56,63 @@ def main():
 
     logger.log("creating data loader...")
     logger.info(f'args.modality: {args.modality}')
-    if args.modality == 'image':
-        data = load_data(
-            data_dir=args.data_dir,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            class_cond=args.class_cond,
-        )
-        data_valid = None
 
+    logger.log('load data', '*' * 50)
+    print(f'args.modality: {args.modality}')
+    if args.modality == 'roc-aug' or args.modality == 'commonGen-aug':
+        tokenizer = load_tokenizer(args.modality, args.experiment,
+                                   'predictability/diffusion_models_v7/diff_roc_pad_rand16_transformer_lr0.0001_0'
+                                   '.0_2000_sqrt_Lsimple_h128_s2_d0.1_sd108_xstart')
+        rev_tokenizer = {v: k for k, v in tokenizer.items()}
+        print(len(rev_tokenizer), 'loading from tokenizer. ')
+    elif args.use_bert_tokenizer == 'yes':
+        rev_tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
     else:
-        logger.log('load data', '*' * 50)
-        print(f'args.modality: {args.modality}')
-        if args.modality == 'roc-aug' or args.modality == 'commonGen-aug':
-            tokenizer = load_tokenizer(args.modality, args.experiment,
-                                       'predictability/diffusion_models_v7/diff_roc_pad_rand16_transformer_lr0.0001_0'
-                                       '.0_2000_sqrt_Lsimple_h128_s2_d0.1_sd108_xstart')
-            rev_tokenizer = {v: k for k, v in tokenizer.items()}
-            print(len(rev_tokenizer), 'loading from tokenizer. ')
-        elif args.use_bert_tokenizer == 'yes':
-            rev_tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-        else:
-            rev_tokenizer = None
+        rev_tokenizer = None
 
-        if args.experiment == 'random1':
-            args.experiment = 'random'
-            print('loading from the vocabs here.')
-            assert args.in_channel == 64
-            assert args.modality == 'roc'
-            model22 = torch.nn.Embedding(args.vocab_size, args.in_channel)
-            model22_weight = torch.load('predictability/diffusion_models_v7/diff_roc-aug_pad_rand64_'
-                                        'transformer_lr0.0001_0.0_2000_sqrt_Lsimple_h128_s2_d0.1_sd108_xstart_e2e/'
-                                        'ema_0.9999_200000.pt', map_location='cpu')['word_embedding.weight']
-            model22.weight = model22_weight
-            model22.weight.requires_grad = False
-        else:
-            model22 = None
-        data = load_data_text(
-            data_dir=args.data_dir,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            class_cond=args.class_cond,
-            data_args=args,
-            task_mode=args.modality,
-            padding_mode=args.padding_mode,  # block, pad
-            load_vocab=rev_tokenizer,
-            model=model22,
-        )
-        next(data)
-        model2, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel,
-                                        args.checkpoint_path, extra_args=args)
-        if args.modality == 'book' or args.use_bert_tokenizer == 'yes':
-            rev_tokenizer = tokenizer  # BERT tokenizer BPE.
-        else:
-            rev_tokenizer = {v: k for k, v in tokenizer.items()}
-        data_valid = load_data_text(
-            data_dir=args.data_dir,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            class_cond=args.class_cond,
-            data_args=args,
-            task_mode=args.modality,
-            padding_mode=args.padding_mode,  # block, pad
-            split='valid',
-            load_vocab=rev_tokenizer,
-            model=model2,
-        )
+    if args.experiment == 'random1':
+        args.experiment = 'random'
+        print('loading from the vocabs here.')
+        assert args.in_channel == 64
+        assert args.modality == 'roc'
+        model22 = torch.nn.Embedding(args.vocab_size, args.in_channel)
+        model22_weight = torch.load('predictability/diffusion_models_v7/diff_roc-aug_pad_rand64_'
+                                    'transformer_lr0.0001_0.0_2000_sqrt_Lsimple_h128_s2_d0.1_sd108_xstart_e2e/'
+                                    'ema_0.9999_200000.pt', map_location='cpu')['word_embedding.weight']
+        model22.weight = model22_weight
+        model22.weight.requires_grad = False
+    else:
+        model22 = None
+    data = load_data_text(
+        data_dir=args.data_dir,
+        batch_size=args.batch_size,
+        image_size=args.image_size,
+        class_cond=args.class_cond,
+        data_args=args,
+        task_mode=args.modality,
+        padding_mode=args.padding_mode,  # block, pad
+        load_vocab=rev_tokenizer,
+        model=model22,
+    )
+    next(data)
+    model2, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel,
+                                    args.checkpoint_path, extra_args=args)
+    if args.modality == 'book' or args.use_bert_tokenizer == 'yes':
+        rev_tokenizer = tokenizer  # BERT tokenizer BPE.
+    else:
+        rev_tokenizer = {v: k for k, v in tokenizer.items()}
+    data_valid = load_data_text(
+        data_dir=args.data_dir,
+        batch_size=args.batch_size,
+        image_size=args.image_size,
+        class_cond=args.class_cond,
+        data_args=args,
+        task_mode=args.modality,
+        padding_mode=args.padding_mode,  # block, pad
+        split='valid',
+        load_vocab=rev_tokenizer,
+        model=model2,
+    )
 
     def get_mapping_func(args, diffusion, data):
         model2, tokenizer = load_models(args.modality, args.experiment, args.model_name_or_path, args.in_channel,
